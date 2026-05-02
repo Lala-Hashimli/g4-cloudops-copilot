@@ -1,0 +1,15 @@
+[Unit]
+Description=G4 CloudOps Copilot Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=azureuser
+WorkingDirectory=/home/azureuser/cloudops-copilot
+EnvironmentFile=/home/azureuser/cloudops-copilot/.env
+ExecStart=/home/azureuser/cloudops-copilot/.venv/bin/python -m src.main
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,190 @@
+mixed_content:
+  keywords:
+    - "Mixed Content"
+    - "requested insecure resource"
+    - "blocked:mixed-content"
+    - "http://20.205.212.128/api/ingredients"
+  severity: warning
+  title: "Mixed Content Detected"
+  root_cause: "The frontend is loaded over HTTPS but still calls the backend through an HTTP address or stale build-time API base URL."
+  impact: "Ingredients and orders fail to load from the deployed backend."
+  fix_steps:
+    - "Check frontend/src/services/api.ts and confirm the API base URL is host-only or HTTPS."
+    - "Check frontend.yml and ensure VITE_API_BASE_URL1 is passed during npm run build."
+    - "Rebuild, redeploy the dist files to the Frontend VM, and hard refresh the browser."
+  suggested_commands:
+    - "grep -R \"localhost:8080\\|20.205.212.128\\|http://\" /var/www/html"
+    - "grep -R \"VITE_API_BASE_URL\" /var/www/html"
+    - "curl -I https://group4b-demo-appgw.southeastasia.cloudapp.azure.com/api/ingredients"
+
+localhost_frontend_api:
+  keywords:
+    - "localhost:8080"
+    - "http://localhost:8080"
+  severity: warning
+  title: "Frontend API Targeted to Localhost"
+  root_cause: "The frontend bundle was built with a localhost API base URL, so browsers call themselves instead of the backend."
+  impact: "Ingredients and orders cannot load from the deployed backend."
+  fix_steps:
+    - "Check frontend/src/services/api.ts."
+    - "Ensure frontend.yml passes VITE_API_BASE_URL1 during npm run build."
+    - "Rebuild and redeploy the frontend dist to the Frontend VM."
+    - "Hard refresh the browser cache."
+  suggested_commands:
+    - "grep -R \"localhost:8080\" /var/www/html"
+    - "grep -R \"VITE_API_BASE_URL\" /var/www/html"
+    - "curl -I https://group4b-demo-appgw.southeastasia.cloudapp.azure.com/api/ingredients"
+
+double_api_path:
+  keywords:
+    - "/api/api/"
+  severity: warning
+  title: "Double API Path Detected"
+  root_cause: "The frontend base URL already contains /api and the client also prefixes routes with /api, producing /api/api paths."
+  impact: "Frontend API calls hit the wrong route and return 404 or 502."
+  fix_steps:
+    - "Use a host-only base URL such as https://group4b-demo-appgw.southeastasia.cloudapp.azure.com."
+    - "Keep route calls as /api/... inside the client."
+    - "Rebuild and redeploy the frontend bundle."
+  suggested_commands:
+    - "grep -R \"/api/api\" /var/www/html"
+    - "curl -I https://group4b-demo-appgw.southeastasia.cloudapp.azure.com/api/ingredients"
+
+appgw_502:
+  keywords:
+    - "502 Bad Gateway"
+    - "Backend health"
+    - "Received invalid status code"
+    - "App Gateway"
+  severity: critical
+  title: "Application Gateway Backend Issue"
+  root_cause: "Application Gateway cannot successfully proxy to the backend because the service is unhealthy, the probe path is wrong, the port is closed, or NSG rules block traffic."
+  impact: "Frontend API traffic can fail with 502/503/504 and users may not be able to load ingredients or orders."
+  fix_steps:
+    - "Check the backend health probe and backend pool status in Application Gateway."
+    - "Check the backend service or container and confirm it is listening on port 8080."
+    - "Check NSG rules from the App Gateway subnet to the backend subnet."
+  suggested_commands:
+    - "curl -I https://group4b-demo-appgw.southeastasia.cloudapp.azure.com/api/ingredients"
+    - "curl -I http://10.20.3.4:8080/api/ingredients"
+    - "sudo systemctl status nginx"
+
+nginx_502:
+  keywords:
+    - "502"
+    - "504"
+    - "upstream timed out"
+    - "connection refused"
+    - "nginx"
+  severity: critical
+  title: "Nginx Upstream Error"
+  root_cause: "Nginx cannot reach the backend upstream or the backend is timing out."
+  impact: "Frontend requests may return 502/504 and users may see a broken site."
+  fix_steps:
+    - "Check the Nginx service and recent error log lines."
+    - "Verify the upstream URL and backend reachability from the frontend VM."
+    - "Check whether the backend is timing out or refusing connections."
+  suggested_commands:
+    - "sudo systemctl status nginx"
+    - "sudo tail -n 80 /var/log/nginx/error.log"
+    - "curl -I http://localhost"
+
+apt_update_failed:
+  keywords:
+    - "Failed to update apt cache"
+    - "100% packet loss"
+    - "Temporary failure resolving"
+    - "Name or service not known"
+  severity: critical
+  title: "Outbound Connectivity Problem"
+  root_cause: "The VM cannot reach package repositories or DNS, usually because outbound internet access is missing."
+  impact: "Ansible provisioning or package installation will fail until outbound access is restored."
+  fix_steps:
+    - "Check outbound internet connectivity from the VM."
+    - "Check NAT Gateway, route table, NSG egress, and firewall rules."
+    - "Retry apt only after connectivity and DNS are restored."
+  suggested_commands:
+    - "ping -c 4 8.8.8.8"
+    - "ping -c 4 google.com"
+    - "sudo apt update"
+
+high_cpu:
+  keywords:
+    - "CPU Percentage"
+    - "high cpu"
+    - "cpu above threshold"
+  severity: warning
+  title: "High CPU Usage"
+  root_cause: "A process on the VM is consuming excessive CPU, such as Java, SonarQube indexing, or a runaway command."
+  impact: "The affected VM may respond slowly and application latency can increase."
+  fix_steps:
+    - "Inspect top CPU-consuming processes."
+    - "Check application logs around the spike."
+    - "Validate recent deployments or traffic surges."
+  suggested_commands:
+    - "top"
+    - "ps aux --sort=-%cpu | head"
+
+sql_high_cpu:
+  keywords:
+    - "SQL CPU"
+    - "cpu_percent"
+    - "sql high cpu"
+  severity: warning
+  title: "Azure SQL High CPU"
+  root_cause: "Azure SQL is under heavy load, commonly due to expensive queries, request spikes, or missing indexes."
+  impact: "Database-backed API requests may slow down or fail under sustained load."
+  fix_steps:
+    - "Check recent backend request volume."
+    - "Inspect expensive queries and indexing."
+    - "Review application retry loops."
+
+github_actions_failed:
+  keywords:
+    - "workflow failed"
+    - "Process completed with exit code"
+    - "self-hosted runner offline"
+    - "artifact"
+  severity: warning
+  title: "GitHub Actions Pipeline Failure"
+  root_cause: "A CI/CD step failed due to tests, artifacts, secrets, runner availability, or deployment commands."
+  impact: "Builds or deployments may stop before reaching the frontend or backend VMs."
+  fix_steps:
+    - "Review the failing job logs."
+    - "Verify secrets and environment variable names."
+    - "Check the self-hosted runner and deployment logs."
+  suggested_commands:
+    - "Check the failed GitHub Actions job log"
+    - "Verify frontend.yml or backend.yml environment variables"
+    - "Check the self-hosted runner status on the Ansible VM"
+
+ssh_permission_denied:
+  keywords:
+    - "Permission denied"
+    - "publickey"
+    - "Host key verification failed"
+  severity: warning
+  title: "SSH Access Failure"
+  root_cause: "SSH key, permissions, or host connectivity are preventing the check from running."
+  impact: "Ansible checks or deployments cannot reach the target VM until SSH is fixed."
+  fix_steps:
+    - "Verify the configured SSH key path."
+    - "Confirm the remote host is reachable."
+    - "Check authorized_keys and file permissions."
+  suggested_commands:
+    - "ls -l ~/.ssh"
+    - "chmod 600 ~/.ssh/id_rsa"
+    - "ssh -v azureuser@10.20.3.4"
+
+docker_pull_error:
+  keywords:
+    - "manifest unknown"
+    - "pull access denied"
+    - "image pull"
+    - "not found"
+  severity: warning
+  title: "Container Image Pull Error"
+  root_cause: "The container image tag is wrong, missing, or the registry access is not authorized."
+  fix_steps:
+    - "Verify the image name and tag."
+    - "Confirm registry permissions and login state."
