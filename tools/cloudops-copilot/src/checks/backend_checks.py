@@ -12,6 +12,16 @@ async def check_backend_health(ssh_client, backend_host: str, service_name: str,
         f"{service_name} || true"
     )
     result = await ssh_client.run_ssh(backend_host, command)
+    if result.return_code != 0:
+        return CheckOutcome(
+            name="backend-health",
+            ok=False,
+            summary="Could not verify backend health over SSH",
+            details={"stdout": result.stdout, "stderr": result.stderr},
+            severity="warning",
+            status="warning",
+            should_alert=False,
+        )
     lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     status_code = lines[0] if lines else "unknown"
     service_state = lines[1] if len(lines) > 1 else "unknown"
@@ -32,6 +42,16 @@ async def check_backend_logs(ssh_client, backend_host: str, service_name: str, s
     if private_vm_requires_vm_mode(settings, backend_host):
         return skipped_outcome("backend-logs")
     result = await ssh_client.run_ssh(backend_host, f"sudo journalctl -u {service_name} -n 80 --no-pager")
+    if result.return_code != 0:
+        return CheckOutcome(
+            name="backend-logs",
+            ok=False,
+            summary="Could not read backend logs over SSH",
+            details={"stdout": result.stdout, "stderr": result.stderr},
+            severity="warning",
+            status="warning",
+            should_alert=False,
+        )
     lowered = result.stdout.lower()
     patterns = [token for token in ["exception", "error", "failed", "refused", "timeout"] if token in lowered]
     return CheckOutcome(
@@ -49,6 +69,16 @@ async def check_backend_processes(ssh_client, backend_host: str, settings) -> Ch
     if private_vm_requires_vm_mode(settings, backend_host):
         return skipped_outcome("backend-processes")
     result = await ssh_client.run_ssh(backend_host, "ps aux --sort=-%cpu | head")
+    if result.return_code != 0:
+        return CheckOutcome(
+            name="backend-processes",
+            ok=False,
+            summary="Could not inspect backend processes over SSH",
+            details={"stdout": result.stdout, "stderr": result.stderr},
+            severity="warning",
+            status="warning",
+            should_alert=False,
+        )
     return CheckOutcome(
         name="backend-processes",
         ok=result.return_code == 0,

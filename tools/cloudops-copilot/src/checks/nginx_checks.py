@@ -7,6 +7,16 @@ async def check_nginx_status(ssh_client, frontend_host: str, settings) -> CheckO
     if private_vm_requires_vm_mode(settings, frontend_host):
         return skipped_outcome("nginx-status")
     result = await ssh_client.run_ssh(frontend_host, "systemctl is-active nginx")
+    if result.return_code != 0:
+        return CheckOutcome(
+            name="nginx-status",
+            ok=False,
+            summary="Could not verify Nginx status over SSH",
+            details={"stdout": result.stdout, "stderr": result.stderr},
+            severity="warning",
+            status="warning",
+            should_alert=False,
+        )
     active = result.stdout.strip() == "active"
     return CheckOutcome(
         name="nginx-status",
@@ -23,6 +33,16 @@ async def check_nginx_errors(ssh_client, frontend_host: str, settings) -> CheckO
     if private_vm_requires_vm_mode(settings, frontend_host):
         return skipped_outcome("nginx-errors")
     result = await ssh_client.run_ssh(frontend_host, "sudo tail -n 80 /var/log/nginx/error.log")
+    if result.return_code != 0:
+        return CheckOutcome(
+            name="nginx-errors",
+            ok=False,
+            summary="Could not read Nginx error log over SSH",
+            details={"stdout": result.stdout, "stderr": result.stderr},
+            severity="warning",
+            status="warning",
+            should_alert=False,
+        )
     lowered = f"{result.stdout}\n{result.stderr}".lower()
     bad_patterns = [token for token in ["502", "504", "upstream timed out", "connection refused"] if token in lowered]
     return CheckOutcome(

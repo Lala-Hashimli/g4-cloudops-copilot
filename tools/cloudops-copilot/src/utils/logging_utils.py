@@ -38,3 +38,7 @@ def setup_logging(secrets: Iterable[str | None]) -> None:
     masking_filter = SecretMaskingFilter(secrets)
     for handler in logging.getLogger().handlers:
         handler.addFilter(masking_filter)
+
+    logging.getLogger("azure").setLevel(logging.WARNING)
+    logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+    logging.getLogger("azure.identity").setLevel(logging.WARNING)
