@@ -2,6 +2,10 @@
 
 G4 CloudOps Copilot is a production-style Telegram bot for the Group 4 Azure 3-tier web application environment. It is designed to run on the Ansible/Ops VM in polling mode, watch Azure metrics and application health, run safe SSH checks to private VMs, explain common incidents, and send concise Telegram alerts.
 
+## How it works
+
+![1778132368262](images/README/1778132368262.png)
+
 ## What the bot does
 
 - Responds to Telegram commands such as `/status`, `/health`, `/nginx`, `/backend`, `/appgw`, `/sql`, `/sonarqube`, `/analyze`, and `/runbook`.
@@ -21,7 +25,7 @@ G4 CloudOps Copilot is a production-style Telegram bot for the Group 4 Azure 3-t
 ## Where it runs
 
 - Local development folder:
-  - `C:\Users\lalah\Desktop\g4-cloudops-copilot\tools\cloudops-copilot`
+  - `tools/cloudops-copilot`
 - Production runtime target:
   - `vm-ansible-group4b-1pdu`
 - Production service:
@@ -142,7 +146,7 @@ Or:
 3. Run manually first:
 
 ```bash
-cd /home/azureuser/cloudops-copilot
+cd /home/azureuser/g4-cloudops-copilot/tools/cloudops-copilot
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
